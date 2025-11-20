@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Labirinto RPG - Integrado</title>
+  <style>
+    :root{
+      --bg:#0f1720; --panel:#0b1220; --accent:#4caf50; --muted:#9aa4a6; --mono: "Courier New", monospace;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071019 0%, #0f1720 100%);color:#e6eef1;font-family:var(--mono);}
+    .wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px}
+    h1{margin:0;color:var(--accent)}
+    #game-board{background:#000;border:3px solid var(--accent);padding:8px;white-space:pre;line-height:1;font-size:16px;min-width:640px;}
+    #controls{display:flex;gap:10px;align-items:center}
+    input[type="text"]{background:#0b1220;border:1px solid #294235;color:#fff;padding:8px;width:120px;text-align:center;font-size:16px}
+    button{background:var(--accent);border:none;color:#021006;padding:8px 12px;border-radius:6px;cursor:pointer}
+    #status{background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;min-width:640px}
+    .muted{color:var(--muted);font-size:13px}
+    #impactoParede {width: 20%; display: none; /* Começa escondida */position: fixed; /* Fica fixa na tela, mesmo com rolagem */top: 50%;left: 50%;transform: translate(-50%, -50% ); /* Centraliza a imagem perfeitamente */z-index: 1000; /* Garante que ela fique na frente de tudo */border: 5px solid red;border-radius: 15px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Labirinto de Yveth — Aventura Integrada</h1>
+
+    <div id="game-board" aria-live="polite"></div>
+
+    <div id="status">
+      <div id="player-hud">Carregando personagem...</div>
+      <div class="muted">Controles: digite W/A/S/D e pressione Enter para mover. Digite Q para reiniciar.</div>
+    </div>
+
+    <div id="controls">
+      <input id="player-input" maxlength="1" placeholder="W/A/S/D" type="text" />
+      <button id="btn-iniciar">Reiniciar / Novo Jogo</button>
+      <button id="btn-inventario">Inventário</button>
+    </div>
+
+    <img src="images.jpg" id="impactoParede" alt="impacto">
+  </div>
+
+<script>
+/* ========= CONFIGURAÇÕES DO MAPA ========= */
+const LINHAS = 32;
+const COLUNAS = 64;
+const NUM_SALAS = 8;
+const TAM_MIN_SALA = 5;
+const TAM_MAX_SALA = 12;
+
+/* ========= SÍMBOLOS ========= */
+const PAREDE = '█';
+const CHAO = ' ';
+const JOGADOR = '🐵';
+const CHAVE = '🔑';
+const SAIDA_FECHADA = '🚪';
+const SAIDA_ABERTA = '🏁';
+
+/* ========= ESTADO ========= */
+let mapa = [];
+let jogador = { x: 1, y: 1, temChave: false };
+let chavePos = { x: 0, y: 0 };
+let saidaPos = { x: 0, y: 0 };
+let eventosDoMapa = [];
+let playerObj = null; // instancia de Personagem
+let gameBoard = document.getElementById('game-board');
+let playerInput = document.getElementById('player-input');
+let playerHud = document.getElementById('player-hud');
+let imagemImpacto = document.getElementById('impactoParede');
+
+/* ========= HISTÓRIA / EVENTOS (JSON embutido) ========= */
+const HISTORIA = {
+  "introducao": "🌲 Você desperta na antiga floresta de Yveth. A névoa cobre o solo e o som distante de um corvo ecoa entre as árvores.",
+  "eventos": {
+    "evento_mercenario": {
+      "id": "evento_mercenario",
+      "simbolo": "!",
+      "descricao": "🌄 Das sombras surge um mercenário, empunhando sua espada enferrujada e um sorriso cruel.",
+      "inimigo": {
+        "nome": "Mercenário",
+        "tipo": "Humano",
+        "vida": 45,
+        "dano": 5,
+        "loot": ["Poção de Cura"],
+        "escudo": 2
+      }
+    },
+    "evento_caverna": {
+      "id": "evento_caverna",
+      "simbolo": "!",
+      "descricao": "🌫️ Você encontra sinais reptilianos — algo se move na escuridão...",
+      "inimigos": [
+        {
+          "nome": "Homem-Lagarto Escudeiro",
+          "tipo": "Homem-Lagarto",
+          "vida": 36,
+          "dano": 4,
+          "loot": ["Escama Brilhante"],
+          "escudo": 2
+        },
+        {
+          "nome": "Homem-Lagarto Guerreiro",
+          "tipo": "Homem-Lagarto",
+          "vida": 50,
+          "dano": 7,
+          "loot": ["Lança Antiga"],
+          "escudo": 3
+        }
+      ]
+    },
+    "tesouro_escondido": {
+        "id": "tesouro_escondido",
+        "simbolo": "T",
+        "descricao": "🍀 Você encontra um baú de madeira escondido entre raízes antigas.",
+        "loot": ["Pedra Mística", "Poção de Cura"]
+    }
+  },
+  "final": {
+    "simbolo": "E",
+    "descricao": "💎 Você encontra um portal brilhante — a luz da manhã inunda seus olhos. Você é lembrado em Yveth..."
+  }
+};
+
+/* ========= CLASSES (Personagem + Inimigo) ========= */
+class Inimigo {
+  constructor(nome, tipo, vida, dano, loot = [], escudo = 0) {
+    this.nome = nome;
+    this.tipo = tipo;
+    this.vida = vida;
+    this.dano = dano;
+    this.loot = loot;
+    this.escudo = escudo;
+  }
+
+  atacar() {
+    const variacao = Math.floor(Math.random() * 3); // 0..2
+    const danoFinal = this.dano + variacao;
+    return danoFinal;
+  }
+
+  defender(dano) {
+    const danoReduzido = Math.max(dano - this.escudo, 0);
+    this.vida -= danoReduzido;
+    return danoReduzido;
+  }
+}
+
+class Personagem {
+  constructor(nome, classe, forca, agilidade, destreza, inteligencia, sorte, traits = []) {
+    this.nome = nome;
+    this.classe = classe;
+    this.forca = forca;
+    this.agilidade = agilidade;
+    this.destreza = destreza;
+    this.inteligencia = inteligencia;
+    this.sorte = sorte;
+    this.traits = traits;
+    this.maxVida = 60 + this.forca * 5 + this.agilidade * 2;
+    this.vida = this.maxVida;
+    this.itens = [];
+    this.escudo = (this.classe === 'Paladino') ? 3 : 0;
+  }
+
+  atacar(inimigo) {
+    // Base de dano por classe
+    let danoBase = this.forca * 2 + Math.floor(this.destreza / 2);
+    if (this.classe === 'Mago') danoBase = Math.floor(this.inteligencia * 2.2);
+    if (this.classe === 'Arqueiro') danoBase += Math.floor(this.destreza * 0.8);
+
+    // trait: Berserker - +50% dano se abaixo de 20% vida
+    if (this.traits.includes('Berserker') && this.vida <= this.maxVida * 0.2) {
+      danoBase = Math.floor(danoBase * 1.5);
+    }
+
+    // Crítico: chance aumenta com sorte
+    const critChance = Math.min(40, this.sorte * 5 + 5); // até 40%
+    const roll = Math.random() * 100;
+    const crit = roll <= critChance;
+    const danoFinal = danoBase + (crit ? Math.floor(danoBase * 0.6) : 0) + Math.floor(Math.random() * 3);
+    return { valor: danoFinal, crit };
+  }
+
+  defender(dano) {
+    // reduz por agilidade/escudo
+    const reduz = Math.floor(this.agilidade / 2) + this.escudo;
+    const danoTomado = Math.max(dano - reduz, 0);
+    this.vida -= danoTomado;
+    return danoTomado;
+  }
+
+  usarPocao() {
+    const idx = this.itens.indexOf('Poção de Cura');
+    if (idx === -1) return false;
+    const cura = Math.floor(this.maxVida * 0.35);
+    this.vida += cura;
+    if (this.vida > this.maxVida) this.vida = this.maxVida;
+    this.itens.splice(idx,1);
+    return cura;
+  }
+
+  mostrarStatus() {
+    return `🧑 ${this.nome} (${this.classe}) | ❤ ${this.vida}/${this.maxVida} | ⚔ ${this.forca} • 🏃 ${this.agilidade} • 🎯 ${this.destreza} • 🧠 ${this.inteligencia} • 🍀 ${this.sorte} | Traits: ${this.traits.join(', ') || 'Nenhuma'}`;
+  }
+
+  testeSorte(basePercent) {
+    const total = basePercent + this.sorte * 4;
+    return Math.random() * 100 <= total;
+  }
+}
+
+/* ========= GERADOR DE MAPA ========= */
+function gerarMapa() {
+  mapa = Array.from({ length: LINHAS }, () => Array(COLUNAS).fill(PAREDE));
+  let salas = [];
+
+  for (let i = 0; i < NUM_SALAS; i++) {
+    const w = Math.floor(Math.random() * (TAM_MAX_SALA - TAM_MIN_SALA + 1)) + TAM_MIN_SALA;
+    const h = Math.floor(Math.random() * (TAM_MAX_SALA - TAM_MIN_SALA + 1)) + TAM_MIN_SALA;
+    const sx = Math.floor(Math.random() * (COLUNAS - w - 2)) + 1;
+    const sy = Math.floor(Math.random() * (LINHAS - h - 2)) + 1;
+
+    for (let y = sy; y < sy + h; y++) {
+      for (let x = sx; x < sx + w; x++) {
+        mapa[y][x] = CHAO;
+      }
+    }
+    const cx = sx + Math.floor(w/2);
+    const cy = sy + Math.floor(h/2);
+    salas.push({x:cx,y:cy});
+  }
+
+  // conectar salas em cadeia
+  for (let i = 1; i < salas.length; i++) {
+    conectarPontos(salas[i-1].x, salas[i-1].y, salas[i].x, salas[i].y);
+  }
+}
+
+function conectarPontos(x1,y1,x2,y2) {
+  let x = x1, y = y1;
+  while (x !== x2 || y !== y2) {
+    if (x !== x2 && (y === y2 || Math.random() < 0.5)) {
+      mapa[y][x] = CHAO;
+      x += Math.sign(x2 - x);
+    } else if (y !== y2) {
+      mapa[y][x] = CHAO;
+      y += Math.sign(y2 - y);
+    }
+  }
+  mapa[y2][x2] = CHAO;
+}
+
+/* ========= POSICIONAMENTO ========= */
+function encontrarPosicaoValida() {
+  let x,y;
+  do {
+    x = Math.floor(Math.random()*(COLUNAS-2))+1;
+    y = Math.floor(Math.random()*(LINHAS-2))+1;
+  } while (mapa[y][x] !== CHAO);
+  return {x,y};
+}
+
+function popularMapa() {
+  const posJ = encontrarPosicaoValida();
+  jogador.x = posJ.x; jogador.y = posJ.y; jogador.temChave = false;
+
+  chavePos = encontrarPosicaoValida();
+  saidaPos = encontrarPosicaoValida();
+
+  eventosDoMapa = [];
+  // adiciona eventos do JSON ao mapa
+  const listaEventos = [
+    HISTORIA.eventos.evento_mercenario,
+    HISTORIA.eventos.evento_caverna,
+    HISTORIA.eventos.tesouro_escondido
+  ];
+
+  listaEventos.forEach(ev => {
+    const pos = encontrarPosicaoValida();
+    ev._x = pos.x; ev._y = pos.y;
+    eventosDoMapa.push(ev);
+    mapa[pos.y][pos.x] = ev.simbolo;
+  });
+
+  // marca chave e saída em mapa (saída será desenhada dinamicamente conforme estado)
+  mapa[chavePos.y][chavePos.x] = CHAVE;
+}
+
+/* ========= RENDER ========= */
+function desenharMapa() {
+  let temp = mapa.map(row => [...row]);
+  // saída
+  temp[saidaPos.y][saidaPos.x] = jogador.temChave ? SAIDA_ABERTA : SAIDA_FECHADA;
+  // chave se ainda não pegou
+  if (!jogador.temChave) temp[chavePos.y][chavePos.x] = CHAVE;
+  // inimigos/eventos já estão no mapa como símbolos '!' ou 'T'
+  temp[jogador.y][jogador.x] = JOGADOR;
+  gameBoard.textContent = temp.map(r => r.join('')).join('\n');
+
+  // hud
+  if (playerObj) playerHud.textContent = playerObj.mostrarStatus();
+  else playerHud.textContent = "Personagem não inicializado.";
+}
+
+/* ========= IMPACTO PAREDE ========= */
+function mostrarImpacto() {
+    imagemImpacto.style.display = "block"; // Mostra a imagem
+    
+    // Esconde a imagem após 1.5 segundos (1500 milissegundos)
+    setTimeout(() => {
+        imagemImpacto.style.display = 'none';
+    }, 1500);
+}
+
+/* ========= EVENTOS AO ANDAR ========= */
+function checarEventoNaPos(x,y) {
+  // se bateu na parede, nada
+  const ev = eventosDoMapa.find(e => e._x === x && e._y === y);
+  return ev || null;
+}
+
+/* ========= COMBATE ========= */
+async function iniciarCombateComDados(dados) {
+  // dados pode ter 'inimigo' único ou 'inimigos' array
+  let inimigosDados = [];
+  if (dados.inimigo) inimigosDados.push(dados.inimigo);
+  if (dados.inimigos) inimigosDados = inimigosDados.concat(dados.inimigos);
+
+  const inimigos = inimigosDados.map(i => new Inimigo(i.nome, i.tipo, i.vida, i.dano, i.loot, i.escudo));
+  alert(dados.descricao + '\n⚔️ Combate iniciado!');
+
+  // loop de combate simples por turnos
+  while (inimigos.some(i => i.vida > 0) && playerObj.vida > 0) {
+    // jogador ataca primeiro
+    let alvo = inimigos.find(i => i.vida > 0);
+    const ataque = playerObj.atacar(alvo);
+    const danoCausado = alvo.defender(ataque.valor);
+    alert(`🗡️ Você ataca ${alvo.nome} e causa ${danoCausado} de dano${ataque.crit ? ' (CRÍTICO!)':''}. ${alvo.nome}: ${Math.max(alvo.vida,0)} HP`);
+
+    if (alvo.vida <= 0) {
+      alert(`💀 ${alvo.nome} foi derrotado!`);
+      // dropar loot
+      if (alvo.loot && alvo.loot.length) {
+        alvo.loot.forEach(item => playerObj.itens.push(item));
+        alert(`🎁 Você pegou: ${alvo.loot.join(', ')}`);
+      }
+    }
+
+    // inimigos atacam
+    for (let inim of inimigos.filter(i=>i.vida>0)) {
+      const danoInim = inim.atacar();
+      const danoReceb = playerObj.defender(danoInim);
+      alert(`⚔️ ${inim.nome} ataca e causa ${danoReceb} de dano. Você: ${Math.max(playerObj.vida,0)} HP`);
+      if (playerObj.vida <= 0) break;
+    }
+
+    // oferece usar poção de cura se tiver e vida baixa
+    if (playerObj.vida > 0 && playerObj.itens.includes('Poção de Cura') && playerObj.vida < playerObj.maxVida*0.45) {
+      if (confirm('Você tem uma Poção de Cura. Deseja usá-la agora?')) {
+        const cura = playerObj.usarPocao();
+        alert(`✨ Você usou Poção e recuperou ${cura} HP. Vida: ${playerObj.vida}/${playerObj.maxVida}`);
+      }
+    }
+  }
+
+  if (playerObj.vida <= 0) {
+    alert('☠️ Você foi derrotado... O jogo reiniciará.');
+    iniciarJogo();
+    return false;
+  } else {
+    alert('🏆 Vitória no combate!');
+    return true;
+  }
+}
+
+/* ========= INICIAR EVENTO (quando jogador pisa) ========= */
+async function iniciarEvento(ev) {
+  // ev é referência direta do evento do mapa
+  if (!ev) return;
+  // se for tesouro
+  if (ev.loot) {
+    alert(ev.descricao + '\nVocê abre o baú!');
+    ev.loot.forEach(i => playerObj.itens.push(i));
+    alert(`🎁 Você recebeu: ${ev.loot.join(', ')}`);
+  } else {
+    // combate (inimigo(s))
+    const venceu = await iniciarCombateComDados(ev);
+    if (!venceu) return;
+  }
+  // limpar evento do mapa
+  mapa[ev._y][ev._x] = CHAO;
+  eventosDoMapa = eventosDoMapa.filter(e => e !== ev);
+  desenharMapa();
+}
+
+/* ========= PROCESSAR INPUT (movimento e ações) ========= */
+function processarInput(evento) {
+  if (evento.key && evento.key !== 'Enter') return;
+  const comando = playerInput.value.trim().toUpperCase();
+  playerInput.value = '';
+
+  if (!comando) return;
+
+  let novoX = jogador.x;
+  let novoY = jogador.y;
+
+  if (comando === 'W') novoY--;
+  else if (comando === 'S') novoY++;
+  else if (comando === 'A') novoX--;
+  else if (comando === 'D') novoX++;
+  else if (comando === 'Q') {
+    if (confirm('Tem certeza que quer reiniciar o jogo?')) iniciarJogo();
+    return;
+  } else {
+    alert('Comando inválido (use W/A/S/D).');
+    return;
+  }
+
+  // colisão
+  if (mapa[novoY] === undefined || mapa[novoY][novoX] === undefined) {
+    mostrarImpacto();
+    return;
+  }
+
+  if (mapa[novoY][novoX] !== PAREDE) {
+    jogador.x = novoX; jogador.y = novoY;
+  } else {
+    mostrarImpacto();
+    return;
+  }
+
+  // pegar chave
+  if (!jogador.temChave && jogador.x === chavePos.x && jogador.y === chavePos.y) {
+    jogador.temChave = true;
+    playerObj.itens.push('Chave Antiga');
+    alert('🔑 Você encontrou a chave!');
+    mapa[chavePos.y][chavePos.x] = CHAO;
+  }
+
+  // entrada na saída
+  if (jogador.x === saidaPos.x && jogador.y === saidaPos.y) {
+    if (jogador.temChave) {
+      alert(HISTORIA.final.descricao + '\nVOCÊ VENCEU! Reiniciando com novo mapa.');
+      iniciarJogo();
+      return;
+    } else {
+      alert('A saída está trancada. Procure a chave.');
+    }
+  }
+
+  // checar evento no tile
+  const ev = checarEventoNaPos(jogador.x, jogador.y);
+  if (ev) iniciarEvento(ev);
+
+  desenharMapa();
+}
+
+/* ========= CRIAÇÃO DINÂMICA DE PERSONAGEM (Classe + Trait) ========= */
+function escolherPersonagemInterativo() {
+  // Apresentar história / introdução
+  alert(HISTORIA.introducao);
+
+  // Escolha de classe
+  const classes = {
+    Guerreiro: {forca:8, agilidade:4, destreza:3, inteligencia:2, sorte:2},
+    Arqueiro: {forca:5, agilidade:8, destreza:7, inteligencia:3, sorte:3},
+    Mago:    {forca:2, agilidade:3, destreza:3, inteligencia:10, sorte:4},
+    Paladino:{forca:7, agilidade:5, destreza:4, inteligencia:4, sorte:2},
+    Caçador: {forca:6, agilidade:7, destreza:6, inteligencia:3, sorte:3}
+  };
+
+  let clsList = Object.keys(classes).join(' / ');
+  let cls = prompt(`Escolha sua classe:\n${clsList}\n(escreva o nome)`, "Guerreiro");
+  if (!cls) cls = 'Guerreiro';
+  cls = cls.trim();
+  if (!classes[cls]) cls = 'Guerreiro';
+
+  // Escolha de trait
+  const traits = ['Sortudo', 'Berserker', 'Guardião', 'Arcano', 'Nenhum'];
+  let trait = prompt(`Escolha um traço (trait):\n${traits.join(' / ')}\n(escreva o nome)`, "Nenhum");
+  if (!trait) trait = 'Nenhum';
+  trait = trait.trim();
+  if (!traits.includes(trait)) trait = 'Nenhum';
+
+  // Constrói personagem
+  const base = classes[cls];
+  const traitArr = [];
+  if (trait === 'Berserker') traitArr.push('Berserker');
+  if (trait === 'Sortudo') traitArr.push('Sortudo');
+  if (trait === 'Guardião') traitArr.push('Guardião');
+  if (trait === 'Arcano') traitArr.push('Arcano');
+
+  // Nome
+  let nome = prompt("Qual o nome do seu personagem?", "Herói");
+  if (!nome) nome = "Herói";
+
+  // Se trait Guardião, aumenta escudo; se Sortudo, aumenta sorte
+  let forca = base.forca, agilidade = base.agilidade, destreza = base.destreza, inteligencia = base.inteligencia, sorte = base.sorte;
+  if (traitArr.includes('Sortudo')) sorte += 3;
+  if (traitArr.includes('Guardião')) agilidade += 1; // defender melhor
+  if (traitArr.includes('Arcano')) inteligencia += 2;
+  if (traitArr.includes('Berserker')) forca += 2;
+
+  playerObj = new Personagem(nome, cls, forca, agilidade, destreza, inteligencia, sorte, traitArr);
+
+  // regras adicionais de traits
+  if (traitArr.includes('Guardião')) playerObj.escudo += 2;
+  if (traitArr.includes('Arcano')) playerObj.itens.push('Pergaminho Antigo');
+
+  alert(`✅ Personagem criado:\n${playerObj.mostrarStatus()}\nItens iniciais: ${playerObj.itens.join(', ') || 'Nenhum'}`);
+}
+
+/* ========= INICIALIZAÇÃO DO JOGO ========= */
+function iniciarJogo() {
+  gerarMapa();
+  popularMapa();
+  escolherPersonagemInterativo();
+  desenharMapa();
+  playerInput.focus();
+}
+
+/* ========= BOTÕES / EVENTOS DO DOM ========= */
+document.getElementById('btn-iniciar').addEventListener('click', () => {
+  if (confirm('Reiniciar o jogo?')) iniciarJogo();
+});
+document.getElementById('btn-inventario').addEventListener('click', () => {
+  if (!playerObj) return alert('Personagem não inicializado.');
+  alert(`🎒 Inventário:\n${playerObj.itens.length ? playerObj.itens.join(', ') : 'Vazio'}`);
+});
+playerInput.addEventListener('keydown', processarInput);
+
+/* ========= START ========= */
+iniciarJogo();
+
+</script>
+</body>
+</html>

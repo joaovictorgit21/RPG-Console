@@ -1,0 +1,13 @@
+/* Adicione isso dentro da sua tag <style> no index.html */
+
+#impacto-parede {
+    width: 20%;
+    display: none; /* Começa escondida */
+    position: fixed; /* Fica fixa na tela, mesmo com rolagem */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50% ); /* Centraliza a imagem perfeitamente */
+    z-index: 1000; /* Garante que ela fique na frente de tudo */
+    border: 5px solid red;
+    border-radius: 15px;
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Labirinto Procedural</title>
+
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #4caf50;
+        }
+        #game-board {
+            background-color: #000;
+            border: 2px solid #4caf50;
+            padding: 10px;
+            line-height: 1.2;
+            font-size: 20px;
+            white-space: pre; /* Mantém a formatação do texto do mapa */
+        }
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        input[type="text"] {
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #4caf50;
+            padding: 8px;
+            width: 200px;
+            text-align: center;
+            font-size: 16px;
+        }
+        p {
+            max-width: 600px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo de Labirinto Procedural</h1>
+    
+    <!-- A "tela" do nosso jogo -->
+    <div id="game-board"></div>
+
+    <!-- Controles do jogador -->
+    <div id="controls">
+        <p>Use W, A, S, D para mover. Digite o comando e pressione Enter.</p>
+        <input maxlength="1" type="text" id="player-input" placeholder="Digite seu movimento (W/A/S/D)">
+    </div>
+
+    <div>
+        <img src="images.jpg" id="impacto-parede" class="bateu-na-parede" alt="parede">
+    </div>
+
+    <!-- Incluindo o arquivo JavaScript -->
+    <script src="game.js"></script>
+</body>
+</html>

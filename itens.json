@@ -1,0 +1,34 @@
+{
+  "itens": [
+    {
+      "nome": "Poção de Cura",
+      "tipo": "consumível",
+      "efeito": "+20 vida"
+    },
+    {
+      "nome": "Moedas Roubadas",
+      "tipo": "moeda",
+      "efeito": "+5 ouro"
+    },
+    {
+      "nome": "Tesouro Antigo",
+      "tipo": "tesouro",
+      "efeito": "valor alto"
+    },
+    {
+      "nome": "Espada Curta Usada",
+      "tipo": "arma",
+      "ataque": 3
+    },
+    {
+      "nome": "Escudo Velho",
+      "tipo": "armadura",
+      "defesa": 2
+    },
+    {
+      "nome": "Cristal Místico",
+      "tipo": "material",
+      "efeito": "crafting raro"
+    }
+  ]
+}
