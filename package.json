@@ -1,8 +1,4 @@
 {
-  "dependencies": {
-    "prompt-sync": "^4.2.0",
-    "readline-sync": "^1.4.10"
-  },
   "name": "rpg_console",
   "version": "1.0.0",
   "main": "main.js",
