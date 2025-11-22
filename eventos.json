@@ -1,0 +1,82 @@
+{
+  "itens": [
+    {
+      "nome": "Poção de Cura",
+      "tipo": "consumível",
+      "efeito": "+20 vida"
+    },
+    {
+      "nome": "Moedas Roubadas",
+      "tipo": "moeda",
+      "efeito": "+5 ouro"
+    },
+    {
+      "nome": "Tesouro Antigo",
+      "tipo": "tesouro",
+      "efeito": "valor alto"
+    },
+    {
+      "nome": "Espada Curta Usada",
+      "tipo": "arma",
+      "ataque": 3
+    },
+    {
+      "nome": "Escudo Velho",
+      "tipo": "armadura",
+      "defesa": 2
+    },
+    {
+      "nome": "Cristal Místico",
+      "tipo": "material",
+      "efeito": "crafting raro"
+    }
+  ],
+
+  "inimigos": {
+    "inimigosLagartos": [
+      {
+        "nome": "Homem-Lagarto Escudeiro",
+        "tipo": "Homem-Lagarto",
+        "vida": 70,
+        "dano": 4,
+        "loot": ["Escama Brilhante"],
+        "escudo": 4
+      },
+      {
+        "nome": "Homem-Lagarto Guerreiro",
+        "tipo": "Homem-Lagarto",
+        "vida": 40,
+        "dano": 8,
+        "loot": ["Lança Antiga"],
+        "escudo": 6
+      }
+    ],
+
+    "inimigosMercenarios": [
+      {
+        "nome": "Mercenário Espadachim",
+        "tipo": "Humano",
+        "vida": 55,
+        "dano": 7,
+        "loot": ["Espada Curta Usada"],
+        "escudo": 3
+      },
+      {
+        "nome": "Mercenário Pesado",
+        "tipo": "Humano",
+        "vida": 70,
+        "dano": 4,
+        "loot": ["Armadura Danificada"],
+        "escudo": 5
+      },
+      {
+        "nome": "Mercenário Berserker",
+        "tipo": "Humano",
+        "vida": 60,
+        "dano": 11,
+        "loot": ["Machado de Guerra Enferrujado"],
+        "escudo": 0
+      }
+    ]
+  }
+}

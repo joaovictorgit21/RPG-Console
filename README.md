@@ -1,117 +1,89 @@
-## 🏰 Reino de Yveth - Jogo de Texto Interativo
+# Jogo de Exploração em Terminal
 
-####
-Descrição:
-Jogo de aventura em terminal feito em Node.js. O jogador cria um herói, distribui pontos de atributos, explora locais e enfrenta inimigos. Cada escolha influencia o desenrolar da história.
-<br>
-<br>
+### Jogo de aventura em terminal feito em Javascript onde você explora um mapa procedural cheio de inimigos, itens e eventos aleatórios.
+#### Seu objetivo é encontrar a **chave**, abrir a **porta** e sobreviver aos perigos da masmorra.
+
+
+## 🧠 Como Funciona
+
+### 🗺️ Mapa Procedural
+O jogo gera um mapa com:
+- ⬛ chão  
+- 🧱 parede  
+- ❓ evento aleatório  
+- 🔑 chave  
+- 🚪 porta  
+- 👤 jogador
+
+
+### 🎁 Eventos Aleatórios
+Ao pisar em ❓ você pode:
+- Encontrar itens
+- Enfrentar inimigos
+- Ganhar ouro/tesouro
+
+### 🗝️ Objetivo
+1. Encontrar a **chave**
+2. Achar a **porta**
+3. Sair da masmorra vivo
 
 ## ⚙️ Requisitos
+- Node.js **>= 18**
+- Terminal com suporte a emojis
 
-* Node.js >= 18
-* Sistema operacional com terminal/console
-
-<br>
+---
 
 ## 📂 Estrutura do Projeto
 
-```bash
-/reino-de-yveth
-│
-├─ main.js              # Arquivo principal do jogo
-├─ Personagem.js        # Classe do herói e atributos
-├─ Inimigo.js           # Classe dos inimigos
-├─ historia.json        # Arquivo JSON com a narrativa
-└─ README.md            # Este arquivo
+``` bash
+    RPG-Console
+    │
+    ├─ eventos.json    # Banco de dados com itens e inimigos
+    ├─ main.js         # Arquivo principal do jogo
+    └─ README.md       # Este arquivo
 ```
-<br>
-<br>
-## Tecnologias Utilizadas
 
-| Tipo | Tecnologia |
+## 💻 Tecnologias e Ferramentas Utilizadas:
+
+| Tipo | Tecnologia | 
 |------|------------|
-| 💻 Script | Javscript |
-| 🎮 controle de versão | GitHub |
-| 👨‍💻 Versionamento de código | Git |
+| 💻 Script | Javscript | 
+| 🎮 controle de versão | GitHub | 
+| 👨‍💻 Versionamento de código | Git | 
 | ⚡ Runtime | Node |
+<br>
+<p>
+  <a href="https://skillicons.dev">
+    <img src="https://skillicons.dev/icons?i=javascript,vscode,git,github" />
+  </a>
+</p>
+<br>
 
+## 🚀 Como Executar 
 
-## 🚀 Como Executar
+#### Clonar Repositório
+
+``` bash
+  | git clone https://github.com/joaovictorgit21/RPG-Console
+```
 
 <ol>
     <li>Abra o terminal na pasta do projeto.</li>
-    <li>Instale dependências (apenas readline-sync é necessária):</li>
-
-```bash
-npm install readline-sync
-```
-<li>Execute o jogo:</li>
-
-```bash
-    node main.js
-```
-
-<li>Siga as instruções no console para criar seu personagem e explorar o mundo.</li>
+    <li>Execute o jogo:</li>
 </ol>
 
+``` bash
+    | node main.js
+```
+
+# 👨‍💻 Programador Criador das Funções
+
+| [<img loading="lazy" src="https://avatars.githubusercontent.com/u/111014716?s=400&u=5d8ff835762bc44c2651472ac96f0f9fc1f953a6&v=4" width=95><br><sub>João Victor Farias</sub>](https://github.com/joaovictorgit21)
+| :---: |
 <br>
 
-## 🛠 Como Funciona
-
-<ol>
-<li>Escolha do Personagem:</li>
-
-####
-
-* Escolha uma raça (Ork, Elfo, Goblin, Vampiro).
-
-* Distribua 10 pontos adicionais entre Força, Agilidade, Destreza, Inteligência e Sorte.
-
-* Digite o nome do herói.
+# 👨‍💻 Programadores Criadores dos Eventos (Itens e Inimigos)
 
 
-<li>Exploração:</li>
-
-####
-
-* O jogador escolhe opções apresentadas pelo jogo.
-
-* A chance de encontrar inimigos depende dos atributos do personagem.
-
-* Em locais como a caverna, encontros são garantidos.
-
-<li>Batalhas:</li>
-
-####
-
-* Opções de ação: Atacar, Usar Poção, Defender.
-
-* O escudo do personagem reduz dano do inimigo.
-
-* O loot dos inimigos é adicionado automaticamente ao inventário.
-
-
-
-<li>Jornada Contínua:</li>
-
-####
-
-* Se não houver próxima cena, o jogo retorna ao início.
-
-* O jogador pode continuar explorando e batalhando.
-
-</ol>
-
-<br>
-
-# 👨‍💻 Programador
-
-## João Victor Farias
-
-<br>
-
-# Criadores da História
-
-## Danilo Odelon
-
-## Laura
+| [<img loading="lazy" src="https://avatars.githubusercontent.com/u/245083721?v=4" width="95"><br><sub>Danilo Odelon</sub>](https://github.com/Odel0n) | [<img loading="lazy" src="https://avatars.githubusercontent.com/u/84395204?v=4" width="95"><br><sub>Laura Arruda</sub>](https://github.com/lauraarruda) |
+| :---: | :---: |
